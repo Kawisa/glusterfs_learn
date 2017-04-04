@@ -1,4 +1,4 @@
-###Synctask
+###Synctask  
  glusterfs里包含一个处理任务请求的线程池（通过ucontext库实现，另一种说法是叫协程）。  
 
 实现文件：   
@@ -10,7 +10,21 @@ Syncop.c 主要包括几个重要的函数:
 	返回一个syncenv的数据结构，维护着整个线程池的状态 
 
  ```
-	struct syncenv {        	struct syncproc     proc[SYNCENV_PROC_MAX];        	int                 procs;        	struct list_head    runq;        	int                 runcount;        	struct list_head    waitq;        	int                 waitcount;			int                 procmin;			int                 procmax;       		pthread_mutex_t     mutex;        	pthread_cond_t      cond;        	size_t              stacksize;		}; ```* syncenv_processor(syncenv->proc[i])  
+	struct syncenv {
+        	struct syncproc     proc[SYNCENV_PROC_MAX];
+        	int                 procs;
+        	struct list_head    runq;
+        	int                 runcount;
+        	struct list_head    waitq;
+        	int                 waitcount;
+			int                 procmin;
+			int                 procmax;
+       		pthread_mutex_t     mutex;
+        	pthread_cond_t      cond;
+        	size_t              stacksize;
+		};
+ ```
+* syncenv_processor(syncenv->proc[i])  
 	一个工作线程，主要信息存放在下面的数据结构之内。
 	这种线程就干三件事：  
 	1.task=syncenv_task 尝试领取任务，如果无任务，且当前线程池里线程数量多于procmin，则会销毁一些线程   
@@ -18,7 +32,12 @@ Syncop.c 主要包括几个重要的函数:
 	3.syncenv_scale(env) 任务有积压了，新建工作线程
  
   ```
-	struct syncproc {          pthread_t           processor; //线程号        ucontext_t          sched; //存放上下文        struct syncenv     *env;	//对应的线程池env        struct synctask    *current;	//当前对应的task	};
+	struct syncproc {  
+        pthread_t           processor; //线程号
+        ucontext_t          sched; //存放上下文
+        struct syncenv     *env;	//对应的线程池env
+        struct synctask    *current;	//当前对应的task
+	};
  ```  
 * sysncenv_task(proc) 参数，自身的proc结构   
   尝试领取任务，env-runq任务队列通过互斥量和条件变量保护，线程首先对互斥量加锁，随后检查条件,所有线程条件变化领取任务。
